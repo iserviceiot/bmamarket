@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบแดชบอร์ดบริหารจัดการและวิเคราะห์ข้อมูลเชิงลึก ตลาดในสังกัดสำนักงานตลาด กทม. (BMA Market Intelligence)</title>
+  
+  <!-- Standalone & Responsive Stylesheet with BMA Watermark (15% opacity) -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Tailwind CSS CDN (with local fallback) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <script>
+    if (typeof tailwind !== 'undefined') {
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              bmagreen: {
+                DEFAULT: '#00897B',
+                500: '#00897B',
+                600: '#00796B',
+                700: '#004D40'
+              }
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col relative">
+
+  <!-- ================= TOP TOOLBAR & CONTROLS ================= -->
+  <header class="top-toolbar px-4 py-3 border-b border-slate-800 bg-slate-900/95 backdrop-blur-md">
+    <div class="max-w-[1720px] mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+      
+      <!-- Brand & Title -->
+      <div class="flex items-center gap-3 w-full lg:w-auto">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white shadow-lg shadow-emerald-900/30">
+          <span class="text-xl">🏛️</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-bold text-slate-100 font-heading leading-tight">สำนักงานตลาดกรุงเทพมหานคร</h1>
+            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">BMA Intelligence AI</span>
+          </div>
+          <p class="text-xs text-slate-400">ระบบบริหารจัดการ วิเคราะห์ Yield ราย ตร.ม. & ผลตอบแทน ROI 12 ตลาดในสังกัด</p>
+        </div>
+      </div>
+
+      <!-- AI Natural Language Question Box with Multi-LLM Engine Switcher (Gemini, ChatGPT, Copilot) -->
+      <div class="flex items-center gap-2 w-full lg:w-[560px]">
+        <!-- Multi-LLM Model Selector -->
+        <select id="selectAIModel" onchange="window.app.aiAssistant.setModel(this.value)" class="bg-slate-950 text-xs text-emerald-400 rounded-xl px-2.5 py-2 border border-slate-800 focus:outline-none shrink-0 font-semibold" title="เลือกสมองกล AI เพื่อประมวลผลคำตอบ">
+          <option value="gemini">🌐 Gemini 2.0</option>
+          <option value="chatgpt">🤖 ChatGPT-4o</option>
+          <option value="copilot">💼 Copilot</option>
+        </select>
+
+        <div class="relative w-full">
+          <input id="aiQueryInput" type="text" placeholder="🤖 ถาม AI หรือสั่ง 'ทำรายงานสรุปเสนอผู้ว่าฯ', 'เปรียบเทียบงบ', 'ปัญหาขยะ'..." class="w-full bg-slate-950 text-xs text-slate-200 rounded-xl px-3.5 py-2 pl-8 border border-emerald-500/40 focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 shadow-inner">
+          <span class="absolute left-2.5 top-2 text-xs">✨</span>
+        </div>
+
+        <button id="btnSubmitAIQuery" class="btn-action px-3.5 py-2 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shrink-0 flex items-center gap-1.5 shadow-lg shadow-emerald-900/30">
+          <span>ถาม AI (Submit)</span>
+        </button>
+      </div>
+
+      <!-- Quick Controls & Dropdown Toolbar -->
+      <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-end">
+
+        <!-- Fiscal Year Dropdown -->
+        <div class="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700">
+          <span class="text-xs text-slate-400 font-medium">ปีงบฯ:</span>
+          <select id="selectFiscalYear" class="bg-slate-900 text-xs text-slate-200 rounded px-2 py-1 border border-slate-700 focus:outline-none">
+            <option value="2566">2566 (อดีต)</option>
+            <option value="2567">2567 (อดีต)</option>
+            <option value="2568">2568 (อดีต)</option>
+            <option value="2569" selected>2569 (ปัจจุบัน)</option>
+            <option value="2570">2570 (คาดการณ์)</option>
+          </select>
+        </div>
+
+        <!-- District & Market Filter Dropdown formatted: `ชื่อตลาด (ชื่อเขต)` -->
+        <div class="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700 max-w-[260px]">
+          <span class="text-xs text-slate-400 font-medium shrink-0">ตลาด/เขต:</span>
+          <select id="selectDistrictFilter" class="bg-slate-900 text-xs text-slate-200 rounded px-2 py-1 border border-slate-700 focus:outline-none truncate w-full">
+            <option value="all">ทุกตลาด และ ทุกเขตใน กทม.</option>
+          </select>
+        </div>
+
+        <!-- Tier Filter Dropdown -->
+        <div class="flex items-center gap-1 bg-slate-800/90 px-2 py-1 rounded-lg border border-slate-700">
+          <span class="text-xs text-slate-400 font-medium">ระดับ:</span>
+          <select id="selectTierFilter" class="bg-slate-900 text-xs text-slate-200 rounded px-2 py-1 border border-slate-700 focus:outline-none">
+            <option value="all">ทุกระดับ</option>
+            <option value="Flagship">Flagship Mega</option>
+            <option value="Medium">Medium Regional</option>
+            <option value="Small">Community Small</option>
+          </select>
+        </div>
+
+        <!-- SUBMIT / APPLY FILTER BUTTON -->
+        <button id="btnApplyGlobalFilter" class="btn-action px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 shadow-lg shadow-emerald-900/30">
+          <span>กรอง (Submit)</span>
+        </button>
+
+        <!-- GLOBAL RESET BUTTON -->
+        <button id="btnResetGlobalFilter" class="btn-action px-2.5 py-1.5 text-xs font-bold rounded-lg bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 flex items-center gap-1" title="ล้างหน้าจอและรีเซ็ตค่าทั้งหมด">
+          <span>🔄 ล้างหน้าจอ</span>
+        </button>
+
+        <!-- Export Action Buttons -->
+        <button id="btnExportCSV" class="btn-action px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1">
+          <span>CSV</span>
+        </button>
+
+        <button id="btnExportJSON" class="btn-action px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1">
+          <span>JSON</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= SUB NAVIGATION TABS & DATA SYNC BAR ================= -->
+  <nav class="bg-slate-900 border-b border-slate-800 px-4 py-2 sticky top-[65px] z-30 space-y-2">
+    <div class="max-w-[1720px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+      
+      <!-- Sub Navigation Buttons -->
+      <div class="flex items-center gap-2 overflow-x-auto py-1 w-full md:w-auto">
+        <button data-tab-target="executive" class="tab-nav-btn px-3.5 py-1.5 text-xs rounded-lg bg-emerald-600 text-white font-bold flex items-center gap-1.5 shrink-0">
+          <span>📊</span>
+          <span>1. ภาพรวม & สภาพอากาศ 3 วัน & อีเวนต์</span>
+        </button>
+        <button data-tab-target="flagshipRoi" class="tab-nav-btn px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-1.5 shrink-0">
+          <span>💎</span>
+          <span>2. วิเคราะห์ ROI ตลาด Flagship</span>
+        </button>
+        <button data-tab-target="spatial3d" class="tab-nav-btn px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-1.5 shrink-0">
+          <span>🏢</span>
+          <span>3. แผนผังจำลองโครงสร้าง 3D & Yield</span>
+        </button>
+        <button data-tab-target="dossier" class="tab-nav-btn px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-1.5 shrink-0">
+          <span>📋</span>
+          <span>4. สารบบ 12 ตลาด กทม. (ครบทุกมิติ)</span>
+        </button>
+        <button data-tab-target="marketCompare" class="tab-nav-btn px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-1.5 shrink-0">
+          <span>☑️</span>
+          <span>5. เปรียบเทียบข้อมูลรายตลาด (Checkboxes)</span>
+        </button>
+        <button data-tab-target="multiYearCompare" class="tab-nav-btn px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-1.5 shrink-0">
+          <span>📈</span>
+          <span>6. เปรียบเทียบงบระหว่างปี (ตาราง/กราฟ/Pie/แท่ง)</span>
+        </button>
+        <button data-tab-target="concessions" class="tab-nav-btn px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-1.5 shrink-0">
+          <span>📝</span>
+          <span>7. สัญญาเช่าช่วง & สัมปทาน</span>
+        </button>
+        <button data-tab-target="wasteItSwot" class="tab-nav-btn px-3 py-1.5 text-xs rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 flex items-center gap-1.5 shrink-0">
+          <span>♻️</span>
+          <span>8. ขยะ-สิ่งแวดล้อม ไอที & SWOT</span>
+        </button>
+      </div>
+
+      <!-- Live Timestamp & Sync Action Buttons -->
+      <div class="flex items-center gap-2 bg-slate-950/80 px-3 py-1 rounded-lg border border-slate-800 text-xs shrink-0 w-full md:w-auto justify-between md:justify-end">
+        <div class="flex items-center gap-1.5 text-[11px] text-slate-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span>อัปเดตล่าสุด:</span>
+          <b class="text-emerald-400 font-mono live-timestamp-text">กำลังโหลด...</b>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button id="btnRefreshLiveData" class="btn-action px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white rounded border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1" title="ดึงข้อมูลล่าสุดจากเซิร์ฟเวอร์">
+            <span>🔄</span>
+            <span>Refresh ข้อมูล</span>
+          </button>
+          <button id="btnForceUpdateDataSource" class="btn-action px-2.5 py-1 bg-sky-600/20 hover:bg-sky-600 text-sky-300 hover:text-white rounded border border-sky-500/40 text-[11px] font-bold flex items-center gap-1" title="ซิงก์ข้อมูลตรงจาก Data Source">
+            <span>⚡</span>
+            <span>อัปเดต Data Source</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- ================= MAIN CONTENT CONTAINER ================= -->
+  <main class="flex-1 max-w-[1720px] w-full mx-auto p-4 lg:p-6 space-y-8">
+
+    <!-- ============================================================== -->
+    <!-- TAB 1: EXECUTIVE OVERVIEW & HOME DASHBOARD                     -->
+    <!-- ============================================================== -->
+    <div id="tabView-executive" class="dashboard-tab-view space-y-8">
+      
+      <!-- 1. REAL-TIME WEATHER & 3-DAY DAILY FORECAST SECTION -->
+      <div class="bma-card p-6 space-y-4">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-3 gap-2">
+          <div>
+            <h2 class="text-base font-bold text-slate-100 font-heading flex items-center gap-2">
+              <span>🌤️</span>
+              <span>สภาวะภูมิอากาศ ณ ปัจจุบัน & พยากรณ์อากาศรายวัน 3 วันข้างหน้า (Weather & Daily Forecast)</span>
+            </h2>
+            <p class="text-xs text-slate-400">ตรวจวัดอุณหภูมิ, คุณภาพอากาศ AQI, ค่าฝุ่น PM2.5, และแนวโน้มสภาพอากาศสำหรับตลาดในกรุงเทพมหานคร</p>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-medium">
+            ข้อมูลสดเชื่อมโยง: TMD & AirBKK
+          </span>
+        </div>
+        
+        <!-- Weather Overview & 3-Day Forecast Container -->
+        <div id="weatherOverviewContainer"></div>
+      </div>
+
+      <!-- 2. MARKET EVENTS & WEEKLY HAPPENINGS RADAR -->
+      <div class="bma-card p-6 space-y-4">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-3 gap-3">
+          <div>
+            <h3 class="text-base font-bold text-slate-100 font-heading flex items-center gap-2">
+              <span>🎪</span>
+              <span>เหตุการณ์สำคัญและกิจกรรมพิเศษในตลาด (Market Events & Weekly Radar)</span>
+            </h3>
+            <p class="text-xs text-slate-400">ติดตามตลาดนัดพิเศษ, สินค้าธงฟ้าราคาประหยัด, ไนท์มาร์เก็ต, งานประกวด และการตรวจสุขาภิบาลในห้วงสัปดาห์</p>
+          </div>
+
+          <!-- Timeframe Filter Buttons -->
+          <div class="flex items-center bg-slate-900 p-1 rounded-lg border border-slate-800 text-xs">
+            <button data-event-timeframe="all" class="px-3 py-1 rounded bg-emerald-600 text-white font-bold transition">
+              ทั้งหมด
+            </button>
+            <button data-event-timeframe="today" class="px-3 py-1 rounded bg-slate-800 text-slate-300 font-semibold transition">
+              ⚡ วันนี้ (Today)
+            </button>
+            <button data-event-timeframe="week" class="px-3 py-1 rounded bg-slate-800 text-slate-300 font-semibold transition">
+              📅 สัปดาห์นี้ (This Week)
+            </button>
+            <button data-event-timeframe="month" class="px-3 py-1 rounded bg-slate-800 text-slate-300 font-semibold transition">
+              🌟 ประจำเดือน
+            </button>
+          </div>
+        </div>
+
+        <!-- Events Grid List -->
+        <div id="marketEventsListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      </div>
+
+      <!-- 3. TOP KPI SUMMARY CARDS -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bma-card p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>รายได้รวมตามตัวกรอง</span>
+            <span class="text-emerald-400 font-bold">100%</span>
+          </div>
+          <div class="mt-2">
+            <span id="kpiTotalRevenue" class="text-2xl font-extrabold text-emerald-400 font-heading">฿590.9M</span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">จัดเก็บรายได้สูงสุด: จตุจักร</span>
+          </div>
+        </div>
+
+        <div class="bma-card p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>กำไรสุทธิรวม (Surplus)</span>
+            <span class="text-cyan-400 font-bold">Net</span>
+          </div>
+          <div class="mt-2">
+            <span id="kpiTotalProfit" class="text-2xl font-extrabold text-cyan-400 font-heading">฿251.7M</span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">กำไรเฉลี่ย 12 ตลาด</span>
+          </div>
+        </div>
+
+        <div class="bma-card p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>อัตราทำกำไรเฉลี่ย</span>
+            <span class="text-indigo-400 font-bold">Margin</span>
+          </div>
+          <div class="mt-2">
+            <span id="kpiAvgMargin" class="text-2xl font-extrabold text-indigo-400 font-heading">42.6%</span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">เทียบรายได้ vs ค่าใช้จ่าย</span>
+          </div>
+        </div>
+
+        <div class="bma-card p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>จำนวนแผงค้าทั้งหมด</span>
+            <span class="text-amber-400 font-bold">Stalls</span>
+          </div>
+          <div class="mt-2">
+            <span id="kpiTotalStalls" class="text-2xl font-extrabold text-slate-100 font-heading">23,194 แผง</span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">รวมตลาดในขอบเขต</span>
+          </div>
+        </div>
+
+        <div class="bma-card p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>ความหนาแน่นผู้เช่า</span>
+            <span class="text-emerald-400 font-bold">Occupancy</span>
+          </div>
+          <div class="mt-2">
+            <span id="kpiAvgOccupancy" class="text-2xl font-extrabold text-emerald-400 font-heading">91.6%</span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">แผงค้าที่มีผู้เช่าจริง</span>
+          </div>
+        </div>
+
+        <div class="bma-card p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-400 text-xs">
+            <span>ลูกหนี้ค้างชำระโดยประมาณ</span>
+            <span class="text-rose-400 font-bold">Debt</span>
+          </div>
+          <div class="mt-2">
+            <span id="kpiTotalDebt" class="text-2xl font-extrabold text-rose-400 font-heading">฿31.05M</span>
+            <span class="text-[11px] text-slate-400 block mt-0.5">ติดตามทวงถามค้างรับ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. MAIN CHARTS ROW -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Revenue Ranking Chart (2 Cols) -->
+        <div class="bma-card lg:col-span-2 p-5 flex flex-col justify-between">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-100 font-heading">การจัดอันดับรายได้ 12 ตลาดในสังกัด (เรียงจากมากไปหาน้อย)</h3>
+              <p class="text-xs text-slate-400">เปรียบเทียบรายได้รวมต่อปีและกำไรสุทธิในแต่ล่ะตลาดตามปีงบประมาณที่เลือก</p>
+            </div>
+            <span class="px-2.5 py-1 text-xs rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">เรียงลำดับรายได้ Max &rarr; Min</span>
+          </div>
+          <div class="h-[340px] w-full">
+            <canvas id="chartRevenueRanking"></canvas>
+          </div>
+        </div>
+
+        <!-- Expense Category Breakdown Doughnut (1 Col) -->
+        <div class="bma-card p-5 flex flex-col justify-between">
+          <div class="border-b border-slate-800 pb-3 mb-4">
+            <h3 class="text-base font-bold text-slate-100 font-heading">สัดส่วนค่าใช้จ่ายจำแนกตามหมวดหมู่</h3>
+            <p class="text-xs text-slate-400">ภาพรวมค่าใช้จ่ายดำเนินงานทั้งหมดของสำนักงานตลาด</p>
+          </div>
+          <div class="h-[340px] w-full flex items-center justify-center">
+            <canvas id="chartExpenseBreakdown"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. FINANCIAL TRENDS & GIS MAP ROW -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 3-Year Historical Trends + Current + Forecast -->
+        <div class="bma-card p-5">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-100 font-heading">แนวโน้มผลประกอบการ 5 ปี (ย้อนหลัง 3 ปี + ปัจจุบัน 2569 + คาดการณ์ 2570)</h3>
+              <p class="text-xs text-slate-400">เปรียบเทียบรายได้ ค่าใช้จ่าย และกำไรสุทธิ</p>
+            </div>
+            <span class="text-xs text-slate-400 bg-slate-800 px-2 py-1 rounded">5-Year Horizon</span>
+          </div>
+          <div class="h-[320px] w-full">
+            <canvas id="chartFinancialTrends"></canvas>
+          </div>
+        </div>
+
+        <!-- Self-Contained Vector GIS Map of 12 Markets -->
+        <div class="bma-card p-5 flex flex-col">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-100 font-heading">แผนที่ภูมิสารสนเทศ (GIS Map) พิกัด 12 ตลาด กทม.</h3>
+              <p class="text-xs text-slate-400">คลิกที่หมุดตลาดเพื่อดูข้อมูลสรุปและจุด POI สำคัญรอบด้าน</p>
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Flagship</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> Medium</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> Small</span>
+            </div>
+          </div>
+          <div id="bmaGisMap" class="h-[320px] w-full rounded-lg overflow-hidden border border-slate-800"></div>
+        </div>
+      </div>
+
+      <!-- 6. MARKET MANAGERS REGISTRY TABLE -->
+      <div class="bma-card p-6 space-y-4">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-3 gap-2">
+          <div>
+            <h3 class="text-base font-bold text-slate-100 font-heading flex items-center gap-2">
+              <span>👔</span>
+              <span>สารบบรายชื่อผู้จัดการตลาด ทั้ง 12 แห่ง ในสังกัดสำนักงานตลาด กทม.</span>
+            </h3>
+            <p class="text-xs text-slate-400">แสดงข้อมูลผู้จัดการตลาด ดำรงตำแหน่งประจำตลาดใด ตั้งแต่เมื่อไร พร้อมระยะเวลาวาระและข้อมูลติดต่อ</p>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">
+            ครบทั้ง 12 ตลาด กทม.
+          </span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="bma-table text-xs">
+            <thead>
+              <tr>
+                <th>ตลาดที่รับผิดชอบ</th>
+                <th>ชื่อ-นามสกุล ผู้จัดการตลาด / ตำแหน่ง</th>
+                <th>ดำรงตำแหน่งตั้งแต่เมื่อไร</th>
+                <th>ระยะเวลาดำรงตำแหน่ง</th>
+                <th>ข้อมูลติดต่อ / อีเมล</th>
+                <th class="text-center">กำลังพลเจ้าหน้าที่</th>
+                <th class="text-center">การดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody id="marketManagersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 7. DATA SOURCES & PROVENANCE ATTRIBUTION -->
+      <div class="bma-card p-6 space-y-4">
+        <div class="border-b border-slate-800 pb-3">
+          <h3 class="text-base font-bold text-slate-100 font-heading flex items-center gap-2">
+            <span>📚</span>
+            <span>แหล่งที่มาของข้อมูลและการเชื่อมโยงข้อมูล (Data Sources & Provenance)</span>
+          </h3>
+          <p class="text-xs text-slate-400">ข้อมูลทั้งหมดในระบบได้รับการเชื่อมโยงและตรวจสอบความถูกต้องจากหน่วยงานทางการของกรุงเทพมหานครและหน่วยงานร่วม</p>
+        </div>
+
+        <div id="dataSourcesContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 2: FLAGSHIP ROI MATRIX & STRATEGIC ANALYSIS                -->
+    <!-- ============================================================== -->
+    <div id="tabView-flagshipRoi" class="dashboard-tab-view hidden space-y-6">
+      <div class="bma-card p-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-4 mb-6 gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-slate-100 font-heading">เอกสารนำเสนอเปรียบเทียบผลตอบแทนการลงทุน (ROI) กลุ่มตลาด Flagship กทม.</h2>
+            <p class="text-xs text-slate-400 mt-1">วิเคราะห์ความคุ้มค่าการบริหารสินทรัพย์ อัตราผลตอบแทนต่อพื้นที่ (Yield/m²) และการประสานสัญญากับหน่วยงานภายนอก</p>
+          </div>
+          <span class="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold">
+            Flagship Tier (Top 3 Revenue Drivers)
+          </span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="bma-table text-xs">
+            <thead>
+              <tr>
+                <th>ตลาดในสังกัด กทม.</th>
+                <th class="text-right">มูลค่าประเมินสินทรัพย์</th>
+                <th class="text-right">รายได้รวมต่อปี</th>
+                <th class="text-right">กำไรสุทธิ</th>
+                <th class="text-right">Yield ราย ตร.ม./เดือน</th>
+                <th class="text-right">ROI (%)</th>
+                <th class="text-right">Cap Rate (%)</th>
+                <th class="text-right">Occupancy (%)</th>
+                <th>หน่วยงานภายนอกที่ร่วมสัญญา</th>
+                <th class="text-center">การดำเนินการ</th>
+              </tr>
+            </thead>
+            <tbody id="flagshipROITableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 3: 3D SPATIAL YIELD & OCCUPANCY ENGINE                     -->
+    <!-- ============================================================== -->
+    <div id="tabView-spatial3d" class="dashboard-tab-view hidden space-y-6">
+      <div class="bma-card p-6">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-slate-100 font-heading">แผนผังจำลองโครงสร้างรายตลาด 3 มิติ (3D Spatial Mockup & Yield Analyzer)</h2>
+            <p class="text-xs text-slate-400 mt-0.5">จำลองผังโซนแผงค้า วิเคราะห์ผลตอบแทน Yield รายตารางเมตร และแผนผังความหนาแน่นเชิงสเปซ (Space Occupancy Map)</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <div class="flex items-center gap-1 bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700 max-w-[240px]">
+              <span class="text-xs text-slate-400 font-medium shrink-0">ตลาด:</span>
+              <select id="select3DMarket" class="bg-slate-900 text-xs text-slate-200 rounded px-2 py-1 border border-slate-700 focus:outline-none w-full truncate"></select>
+            </div>
+
+            <div class="flex items-center gap-1 bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700">
+              <span class="text-xs text-slate-400 font-medium">โหมด:</span>
+              <select id="select3DMode" class="bg-slate-900 text-xs text-slate-200 rounded px-2 py-1 border border-slate-700 focus:outline-none">
+                <option value="yield" selected>💰 Yield Heatmap (บาท/ตร.ม.)</option>
+                <option value="occupancy">👥 Space Occupancy Map (%)</option>
+                <option value="concession">📑 Concession & Lease Types</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-1">
+              <input id="search3DZone" type="text" placeholder="🔍 ค้นหาโซนในผัง 3D..." class="bg-slate-900 text-xs text-slate-200 rounded-lg px-3 py-1.5 border border-slate-700 focus:outline-none focus:border-emerald-500 w-36">
+              <button id="btnSubmit3DSearch" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold">ค้นหา</button>
+            </div>
+
+            <button id="btnReset3DCamera" class="btn-action px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 flex items-center gap-1">
+              <span>🔄 Reset View</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div class="lg:col-span-3 canvas-3d-wrapper relative">
+            <canvas id="spatial3dCanvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+            <div class="absolute bottom-3 right-3 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-700 text-[11px] text-slate-400 flex items-center gap-3">
+              <span>🖱️ คลิกลาก: เลื่อนมุมมอง</span>
+              <span>🔍 กลิ้งเมาส์: ซูม เข้า-ออก</span>
+              <span>👆 คลิกบล็อก: ดูผลวิเคราะห์โซน</span>
+            </div>
+          </div>
+
+          <div class="bma-card p-4 flex flex-col justify-between">
+            <div>
+              <div class="border-b border-slate-800 pb-2.5 mb-3 flex items-center justify-between">
+                <h4 class="text-sm font-bold text-slate-100 font-heading">ผลวิเคราะห์โซน (Zone Inspector)</h4>
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              </div>
+              <div id="spatialZoneInfoPanel">
+                <div class="p-6 text-center text-slate-400 text-xs space-y-2">
+                  <div class="text-3xl">🏢</div>
+                  <p class="font-medium text-slate-300">คลิกที่บล็อก 3 มิติเพื่อตรวจวิเคราะห์</p>
+                  <p class="text-[11px] text-slate-500">แสดงผล Yield ราย ตร.ม., อัตรา Occupancy, จำนวนแผง และสัญญา</p>
+                </div>
+              </div>
+            </div>
+            <div class="pt-3 border-t border-slate-800/80 text-[11px] text-slate-400">
+              💡 แผนผังจำลองโครงสร้างถูกประมวลผลแบบ Real-time ตามฐานข้อมูลสถิติของสำนักงานตลาด กทม.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 4: COMPLETE 12-MARKET DOSSIER                              -->
+    <!-- ============================================================== -->
+    <div id="tabView-dossier" class="dashboard-tab-view hidden space-y-6">
+      <div class="bma-card p-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-4 mb-6 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-100 font-heading">สารบบข้อมูลรายตลาด 12 แห่งในสังกัด (เรียงตามรายได้จากมากไปหาน้อย)</h2>
+            <p class="text-xs text-slate-400 mt-0.5">ข้อมูลละเอียดสมบูรณ์: พิกัด Geo, สภาพอากาศ, สัดส่วนแผงค้า, อัตราค่าเช่า, การเช่าช่วง, สัมปทาน, งบการเงิน, ขยะ, IT และ SWOT</p>
+          </div>
+
+          <div class="flex items-center gap-2 w-full md:w-auto">
+            <div class="relative w-full md:w-72">
+              <input id="searchDossier" type="text" placeholder="🔍 ค้นหาชื่อตลาด, เขต, สินค้า, หรือแผงค้า..." class="w-full bg-slate-900 text-xs text-slate-200 rounded-lg px-3 py-2 pl-9 border border-slate-700 focus:outline-none focus:border-emerald-500">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+            <button id="btnSubmitDossierSearch" class="btn-action px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shrink-0">
+              ค้นหา (Submit)
+            </button>
+          </div>
+        </div>
+
+        <div id="marketDossierGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 5: MULTI-MARKET CHECKBOX COMPARISON MODULE                 -->
+    <!-- ============================================================== -->
+    <div id="tabView-marketCompare" class="dashboard-tab-view hidden space-y-6">
+      <div class="bma-card p-6 space-y-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-100 font-heading">☑️ ระบบเปรียบเทียบข้อมูลรายตลาดแบบเลือกได้ (Market Multi-Compare)</h2>
+            <p class="text-xs text-slate-400 mt-0.5">เลือกติ๊กถูก Checkbox ตลาดที่ท่านต้องการเปรียบเทียบเพื่อดูมิติ รายได้, กำไร, พื้นที่, แผงค้า, อัตราเช่าช่วง, สัมปทาน และขยะ</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnSelectAllMarkets" class="px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-400 hover:text-white rounded-lg text-xs font-bold border border-emerald-500/40 transition">
+              ✓ เลือกทั้งหมด (12 ตลาด)
+            </button>
+            <button id="btnDeselectAllMarkets" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-slate-700 transition">
+              ✗ ล้างการเลือก
+            </button>
+          </div>
+        </div>
+
+        <!-- 12 Market Checkboxes List -->
+        <div>
+          <span class="text-xs font-bold text-slate-300 block mb-2">เลือกตลาดที่ต้องการนำมาเปรียบเทียบ (Checkbox):</span>
+          <div id="marketCheckboxList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2"></div>
+        </div>
+
+        <!-- Side-by-Side Comparison Matrix Table -->
+        <div id="marketComparisonMatrixContainer" class="bg-slate-900/60 rounded-xl border border-slate-800 p-4"></div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 6: MULTI-YEAR FINANCIAL COMPARISON (TABLE / BAR / LINE / PIE)-->
+    <!-- ============================================================== -->
+    <div id="tabView-multiYearCompare" class="dashboard-tab-view hidden space-y-6">
+      <div class="bma-card p-6 space-y-6">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-100 font-heading">📈 ระบบเปรียบเทียบงบการเงินระหว่างปี (Multi-Year Financial Trends)</h2>
+            <p class="text-xs text-slate-400 mt-0.5">เลือกปีงบประมาณและสลับมุมมองการแสดงผลได้ทั้ง ตาราง, กราฟแท่ง, กราฟเส้นแนวโน้ม, หรือ กราฟวงกลม (Pie)</p>
+          </div>
+
+          <!-- Controls: Year Checkboxes + Target Market Selector + View Mode Switcher -->
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-1.5 bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700 max-w-[240px]">
+              <span class="text-xs text-slate-400 font-medium shrink-0">ขอบเขต:</span>
+              <select id="selectMultiYearMarket" class="bg-slate-900 text-xs text-slate-200 rounded px-2 py-1 border border-slate-700 focus:outline-none w-full truncate"></select>
+            </div>
+
+            <div class="flex items-center bg-slate-900 p-1 rounded-lg border border-slate-700 text-xs">
+              <button data-year-view-mode="bar" class="px-3 py-1 rounded bg-emerald-600 text-white font-semibold transition">
+                📊 แท่ง
+              </button>
+              <button data-year-view-mode="line" class="px-3 py-1 rounded bg-slate-800 text-slate-300 font-semibold transition">
+                📈 เส้น
+              </button>
+              <button data-year-view-mode="pie" class="px-3 py-1 rounded bg-slate-800 text-slate-300 font-semibold transition">
+                🥧 วงกลม
+              </button>
+              <button data-year-view-mode="table" class="px-3 py-1 rounded bg-slate-800 text-slate-300 font-semibold transition">
+                📋 ตาราง
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Year Checkboxes Selection -->
+        <div class="flex flex-wrap items-center gap-4 bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs">
+          <span class="font-bold text-slate-300">เลือกปีงบประมาณที่ต้องการเปรียบเทียบ:</span>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" value="2566" checked class="year-compare-chk w-4 h-4 rounded bg-slate-800 text-emerald-500 border-slate-700">
+            <span>ปี 2566 (อดีต)</span>
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" value="2567" checked class="year-compare-chk w-4 h-4 rounded bg-slate-800 text-emerald-500 border-slate-700">
+            <span>ปี 2567 (อดีต)</span>
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" value="2568" checked class="year-compare-chk w-4 h-4 rounded bg-slate-800 text-emerald-500 border-slate-700">
+            <span>ปี 2568 (อดีต)</span>
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" value="2569" checked class="year-compare-chk w-4 h-4 rounded bg-slate-800 text-emerald-500 border-slate-700">
+            <span class="text-emerald-400 font-bold">ปี 2569 (ปัจจุบัน)</span>
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" value="2570" checked class="year-compare-chk w-4 h-4 rounded bg-slate-800 text-emerald-500 border-slate-700">
+            <span class="text-purple-400 font-bold">ปี 2570 (คาดการณ์)</span>
+          </label>
+        </div>
+
+        <!-- Dynamic Visualization Container (Chart or Table) -->
+        <div id="multiYearViewContainer" class="bg-slate-900/60 rounded-xl border border-slate-800 p-4"></div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 7: CONCESSIONS & SUB-LEASING LEDGER                        -->
+    <!-- ============================================================== -->
+    <div id="tabView-concessions" class="dashboard-tab-view hidden space-y-6">
+      <div class="bma-card p-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-4 mb-6 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-100 font-heading">ทะเบียนควบคุมสัญญาสัมปทานภายนอก & การปล่อยเช่าช่วง (Concessions & Sub-leasing)</h2>
+            <p class="text-xs text-slate-400 mt-0.5">ติดตามสัมปทานที่จอดรถ, สัมปทานห้องน้ำ, ระยะเวลาสัญญา วันเริ่มต้น-สิ้นสุด และสถานะการปล่อยเช่าช่วงรายตลาด</p>
+          </div>
+
+          <div class="flex items-center gap-2 w-full md:w-auto">
+            <div class="relative w-full md:w-72">
+              <input id="searchConcessions" type="text" placeholder="🔍 ค้นหาชื่อตลาด, ผู้รับสัมปทาน, รูปแบบสัญญา..." class="w-full bg-slate-900 text-xs text-slate-200 rounded-lg px-3 py-2 pl-9 border border-slate-700 focus:outline-none focus:border-emerald-500">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+            <button id="btnSubmitConcessionsSearch" class="btn-action px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shrink-0">
+              ค้นหา (Submit)
+            </button>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="bma-table text-xs">
+            <thead>
+              <tr>
+                <th>ตลาดในสังกัด กทม.</th>
+                <th>ผู้รับสัมปทานที่จอดรถ / ระยะเวลา</th>
+                <th class="text-right">รายได้สัมปทานที่จอดรถ/ปี</th>
+                <th>ผู้รับสัมปทานห้องน้ำ / สัญญา</th>
+                <th class="text-right">รายได้สัมปทานห้องน้ำ/ปี</th>
+                <th>สถานะการเช่าช่วง (Sub-lease)</th>
+                <th class="text-center">สัญญา</th>
+              </tr>
+            </thead>
+            <tbody id="concessionsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- TAB 8: WASTE, IT SYSTEMS & SWOT RISK MATRIX                    -->
+    <!-- ============================================================== -->
+    <div id="tabView-wasteItSwot" class="dashboard-tab-view hidden space-y-6">
+      <div id="wasteAndITContainer"></div>
+
+      <div class="bma-card p-6 space-y-6">
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-100 font-heading">เมทริกซ์ SWOT, ข้อจำกัด, สิ่งที่ต้องแก้ไขเร่งด่วน & การจัดการความโปร่งใส</h2>
+            <p class="text-xs text-slate-400 mt-0.5">การตรวจสอบกลุ่มผู้มีอิทธิพล, การปราบปรามการทุจริต, จุดขายสำหรับผู้ค้า-ผู้ซื้อ รายตลาด 12 แห่ง</p>
+          </div>
+
+          <div class="flex items-center gap-2 w-full md:w-auto">
+            <div class="relative w-full md:w-72">
+              <input id="searchSWOT" type="text" placeholder="🔍 ค้นหาจุดเด่น, จุดด้อย, ปัญหาเร่งด่วน, ความโปร่งใส..." class="w-full bg-slate-900 text-xs text-slate-200 rounded-lg px-3 py-2 pl-9 border border-slate-700 focus:outline-none focus:border-emerald-500">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+            <button id="btnSubmitSWOTSearch" class="btn-action px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shrink-0">
+              ค้นหา (Submit)
+            </button>
+          </div>
+        </div>
+
+        <div id="swotMatrixContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ================= AI INTELLIGENCE & REPORT GENERATOR POP-UP MODAL ================= -->
+  <div id="aiModalOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div id="aiModalPopup" class="bg-slate-900 rounded-2xl border border-emerald-500/40 w-full max-w-4xl max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
+      <div class="p-4 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <span class="text-2xl">🤖</span>
+          <div>
+            <h3 class="text-base font-bold text-slate-100 font-heading">ศูนย์วิเคราะห์สารสนเทศ AI & ร่างรายงานผู้บริหาร (Multi-LLM Engine)</h3>
+            <p id="aiModalUserQuestion" class="text-xs text-emerald-400 font-medium">คำถาม: ...</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="aiModalCloseBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- AI Quick Report Generator Action Bar -->
+      <div class="px-6 py-2.5 bg-slate-950/70 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span class="text-slate-400 font-semibold">📑 คำสั่งด่วนร่างรายงานทางการ:</span>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button onclick="window.app.askAIPreset('ขอรายงานสรุปภาพรวม 12 ตลาด เพื่อเสนอผู้ว่าฯ กทม.')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 text-[11px]">
+            📊 รายงานสรุปเสนอผู้ว่าฯ
+          </button>
+          <button onclick="window.app.askAIPreset('รายงานปัญหาการเช่าช่วง ส่วย และมาตรการแก้ไขเชิงโครงสร้าง')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 text-[11px]">
+            🚨 รายงานปราบส่วยเช่าช่วง
+          </button>
+          <button onclick="window.app.askAIPreset('รายงานวิเคราะห์ผลตอบแทน Yield และ ROI ตลาด Flagship')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 text-[11px]">
+            💎 รายงาน ROI & Yield
+          </button>
+          <button onclick="window.app.askAIPreset('ยุทธศาสตร์การบริหารจัดการขยะ สิ่งแวดล้อม และ Carbon Neutrality')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700 text-[11px]">
+            ♻️ รายงาน Green Market
+          </button>
+        </div>
+      </div>
+
+      <div id="aiModalBody" class="p-6 overflow-y-auto flex-1 text-xs space-y-4"></div>
+
+      <div class="p-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs text-slate-400">
+        <span>💡 บูรณาการ Multi-LLM: Google Gemini 2.0 • OpenAI ChatGPT • Microsoft Copilot</span>
+        <button onclick="window.app.closeAIModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL DEEP-DIVE MARKET DOSSIER ================= -->
+  <div id="marketModalOverlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div id="marketModal" class="bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-fadeIn">
+      <div class="p-5 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+        <div>
+          <h3 id="modalMarketTitle" class="text-lg font-bold text-slate-100 font-heading">ตลาดนัดจตุจักร</h3>
+          <p id="modalMarketSubtitle" class="text-xs text-slate-400 mt-0.5">ตลาดนัดจตุจักร / เจเจ (JJ Market) | เขตจตุจักร</p>
+        </div>
+        <button id="modalCloseBtn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+          ✕
+        </button>
+      </div>
+
+      <div class="bg-slate-900 border-b border-slate-800 px-5 py-2 flex gap-2 overflow-x-auto">
+        <button onclick="window.app.switchModalSubTab('overview')" data-subtab="overview" class="modal-subtab-btn px-3 py-1 text-xs rounded-lg bg-emerald-600 text-white font-medium shrink-0">
+          📍 ข้อมูลทั่วไป & สถานที่ตั้ง & สภาพอากาศ
+        </button>
+        <button onclick="window.app.switchModalSubTab('stalls')" data-subtab="stalls" class="modal-subtab-btn px-3 py-1 text-xs rounded-lg bg-slate-800 text-slate-300 font-medium shrink-0">
+          🏪 สัดส่วนแผงค้า & ค่าเช่า
+        </button>
+        <button onclick="window.app.switchModalSubTab('concessions')" data-subtab="concessions" class="modal-subtab-btn px-3 py-1 text-xs rounded-lg bg-slate-800 text-slate-300 font-medium shrink-0">
+          📑 เช่าช่วง & สัมปทาน & งบการเงิน
+        </button>
+        <button onclick="window.app.switchModalSubTab('waste')" data-subtab="waste" class="modal-subtab-btn px-3 py-1 text-xs rounded-lg bg-slate-800 text-slate-300 font-medium shrink-0">
+          🗑️ ขยะ น้ำเสีย & IT
+        </button>
+        <button onclick="window.app.switchModalSubTab('swot')" data-subtab="swot" class="modal-subtab-btn px-3 py-1 text-xs rounded-lg bg-slate-800 text-slate-300 font-medium shrink-0">
+          🎯 SWOT & สถิติ 5 ปี
+        </button>
+      </div>
+
+      <div id="modalTabContent" class="p-6 overflow-y-auto flex-1 text-xs space-y-4"></div>
+
+      <div class="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs text-slate-400">
+        <span>ข้อมูลกำกับดูแลโดย: สำนักงานตลาดกรุงเทพมหานคร</span>
+        <button onclick="window.app.closeMarketModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
+          ปิดหน้าต่าง
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-slate-800/80 bg-slate-950 py-4 px-6 text-center text-xs text-slate-500">
+    <div class="max-w-[1720px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>© 2569 สำนักงานตลาดกรุงเทพมหานคร (Bangkok Market Office - BMA). สงวนลิขสิทธิ์.</p>
+      <div class="flex items-center gap-3">
+        <button onclick="window.app.switchTab('executive')" class="text-emerald-400 hover:underline">📊 กลับสู่แท็บ 1 ภาพรวม</button>
+        <span>|</span>
+        <button onclick="document.getElementById('btnResetGlobalFilter')?.click()" class="text-rose-400 hover:underline">🔄 ล้างหน้าจอ (Reset)</button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/executive_directory.js"></script>
+  <script src="js/spatial3d.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/ai_assistant.js"></script>
+  <script src="js/comparison.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Instant Bootstrap Execution Script -->
+  <script>
+    (function bootstrapDashboard() {
+      if (window.app) {
+        try { window.app.initUI(); } catch (e) {}
+        try { window.app.updateTimestampDisplay(); } catch (e) {}
+        try { window.app.renderWeatherAndDailyForecast(); } catch (e) {}
+        try { window.app.renderMarketEvents(); } catch (e) {}
+        try { window.app.renderMarketManagersRegistry(); } catch (e) {}
+        try { window.app.renderDataSourcesAttribution(); } catch (e) {}
+        try { window.app.updateAllDataViews(); } catch (e) {}
+        try { window.app.initEngines(); } catch (e) {}
+      }
+    })();
+  </script>
+
+</body>
+</html>
